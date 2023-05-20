@@ -1,7 +1,7 @@
 torch
 imageio
 h5py
-opencv-python
+opencv-python-headless
 pydegensac
 tensorboard
 tensorflow

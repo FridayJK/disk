@@ -104,7 +104,8 @@ class ImageSet:
 
     def _get_bitmap_path(self, image_name):
         base_name = _base_image_name(image_name)
-        return P.join(self.image_path, base_name + '.jpg')
+        # return P.join(self.image_path, base_name + '.jpg')
+        return P.join(self.image_path, base_name + '.jpeg')
 
     def _get_KRT(self, image_name):
         calibration_path = P.join(self.calib_path,

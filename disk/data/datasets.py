@@ -18,7 +18,7 @@ def get_datasets(
         raise ValueError("Unspecified no_depth")
 
     train_dataset = DISKDataset(
-        os.path.join(root, 'train/dataset.json'),
+        os.path.join(root, 'train_dataset.json'),
         crop_size=crop_size,
         limit=train_limit,
         shuffle=True,
@@ -35,7 +35,7 @@ def get_datasets(
     )
 
     test_dataset = DISKDataset(
-        os.path.join(root, 'test/dataset.json'),
+        os.path.join(root, 'test_dataset.json'),
         crop_size=crop_size,
         limit=test_limit,
         shuffle=True,

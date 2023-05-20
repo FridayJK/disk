@@ -58,7 +58,7 @@ class MultiFigure:
         self,
         xy1: [2, 'N'],
         xy2: [2, 'N'],
-        color='green',
+        color='red',
         lines=True,
         marks=True,
         plot_n=None,

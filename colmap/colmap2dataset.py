@@ -110,53 +110,84 @@ def encode_pairs(pairs):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('path', type=str)
-    parser.add_argument('--name', type=str, default='default-scene')
-    parser.add_argument('--no-depth', action='store_true')
+    parser.add_argument('--path', type=str, default="/workspace/mnt/storage/zhangjunkang/zjk1/data/colmap_gaosu/sample_data")
+    # parser.add_argument('--name', type=str, default='172.168.137.236_preset2')
+    parser.add_argument('--ip_list', type=str, default='test_scene_list.txt')
+    # parser.add_argument('--no-depth', action='store_true')
+    parser.add_argument('--no-depth', action='store_false')
 
     args = parser.parse_args()
+ 
+    scene_list = []
+    with open(os.path.join(args.path, args.ip_list)) as f:
+        ip_list = f.readlines()
+        for ip_ in ip_list:
+            scene_list.append(ip_.strip()) 
+
 
     args.path = os.path.abspath(args.path)
+    json_path      = os.path.join(args.path, 'test_dataset.json')
 
-    image_path     = os.path.join(args.path, 'images')
-    sparse_path    = os.path.join(args.path, 'sparse')
-    calib_path     = os.path.join(args.path, 'dataset', 'calibration')
-    json_path      = os.path.join(args.path, 'dataset', 'dataset.json')
+    dataset = {}
+    for scene_ in scene_list:
+        scene_path = os.path.join(args.path, scene_)
 
-    if not args.no_depth:
-        depth_src_path = os.path.join(args.path, 'stereo', 'depth_maps')
-        depth_dst_path = os.path.join(args.path, 'dataset', 'depth')
-    else:
-        depth_src_path = ''
-        depth_dst_path = ''
+        # args.path = os.path.join(args.path, args.name)
+        image_path     = os.path.join(scene_, 'images')
+        sparse_path    = os.path.join(scene_path, 'sparse/0')
+        calib_path     = os.path.join(scene_path, 'calibration')
+        calib_path_relative = os.path.join(scene_, 'calibration')
+        # json_path      = os.path.join(args.path, 'dataset', 'dataset.json')
 
-    cameras, images, points3D = read_model(sparse_path, ext='.bin')
+        if(not os.path.exists(sparse_path)):
+            continue
 
-    os.makedirs(calib_path, exist_ok=True)
+        if not args.no_depth:
+            depth_src_path = os.path.join(scene_path, 'stereo', 'depth_maps')
+            depth_dst_path = os.path.join(scene_path, 'dataset', 'depth')
+        else:
+            depth_src_path = ''
+            depth_dst_path = ''
 
-    print('Creating calibration files...')
-    for image in tqdm(images.values()):
-        create_calibration(image, cameras[image.camera_id], calib_path) 
+        cameras, images, points3D = read_model(sparse_path, ext='.bin')
 
-    if not args.no_depth:
-        os.makedirs(depth_dst_path, exist_ok=True)
-        print('Converting depth...')
+        os.makedirs(calib_path, exist_ok=True)
+
+        print('Creating calibration files...')
         for image in tqdm(images.values()):
-            convert_depth(image.name, depth_src_path, depth_dst_path)
-    else:
-        print('Skipping depth maps...')
+            create_calibration(image, cameras[image.camera_id], calib_path)
 
-    images, tuples = encode_pairs(covisible_pairs(images))
+        if not args.no_depth:
+            os.makedirs(depth_dst_path, exist_ok=True)
+            print('Converting depth...')
+            for image in tqdm(images.values()):
+                convert_depth(scene_, depth_src_path, depth_dst_path)
+        else:
+            print('Skipping depth maps...')
 
-    dataset = {
-        args.name: {
+        try:
+            images, tuples = encode_pairs(covisible_pairs(images))
+        except ZeroDivisionError:
+            print(f"error occur {scene_}, when encode_pairs")
+            continue
+
+        dataset[scene_] = {
             'images'    : images,
             'tuples'    : tuples,
-            'calib_path': calib_path,
+            'calib_path': calib_path_relative,
             'depth_path': depth_dst_path,
             'image_path': image_path,
-        },
-    }
+        }
+
+    # dataset = {
+    #     args.name: {
+    #         'images'    : images,
+    #         'tuples'    : tuples,
+    #         'calib_path': calib_path_relative,
+    #         'depth_path': depth_dst_path,
+    #         'image_path': image_path,
+    #     },
+    # }
 
     with open(json_path, 'w') as json_file:
         json.dump(dataset, json_file)

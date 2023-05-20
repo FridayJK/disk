@@ -2,26 +2,27 @@ import argparse, h5py, os, imageio, torch
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import torch.nn.functional as F
+import numpy as np
 
 from disk.common.vis import MultiFigure
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(
     description='Script for viewing the keypoints.h5 and matches.h5 contents',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
-parser.add_argument('h5_path', help='Path to .h5 artifacts')
-parser.add_argument('image_path', help='Path to corresponding images')
+# parser.add_argument('--h5_path', type=str, default="./output/h5_path/", help='Path to .h5 artifacts')
+# parser.add_argument('--image_path', type=str, default="/workspace/mnt/storage/zhangjunkang/zjk1/data/sample_140_p1_pinhole/images/", help='Path to corresponding images')
+parser.add_argument('--h5_path', type=str, default="./output2/h5_path_scratch_save29/", help='Path to .h5 artifacts')
+parser.add_argument('--image_path', type=str, default="/workspace/mnt/storage/zhangjunkang/zjk1/data/colmap_gaosu/sample_data/33.64.37.140_preset1/images/", help='Path to corresponding images')
+parser.add_argument('--save', default="./output2/vis_140_scratch_save29/", type=str, help=('If give a path, saves the visualizations rather than displaying them interactively'))
 parser.add_argument(
-    '--image-extension', default='jpg', type=str,
+    '--image-extension', default='jpeg', type=str,
     help='Extension of the images'
 )
 parser.add_argument(
-    '--save', default=None, type=str,
-    help=('If give a path, saves the visualizations rather than displaying '
-          'them interactively')
-)
-parser.add_argument(
-    'mode', choices=['keypoints', 'matches'],
+    '--mode', choices=['keypoints', 'matches'], default="matches",
     help=('Whether to dispay the keypoints (in a single image) or matches '
           '(across pairs)')
 )
@@ -29,14 +30,14 @@ parser.add_argument(
 args = parser.parse_args()
 
 save_i = 1
-def show_or_save():
+def show_or_save(name1, name2):
     global save_i
 
     if args.save is None:
         plt.show()
         return
     else:
-        path = os.path.join(os.path.expanduser(args.save), f'{save_i}.png')
+        path = os.path.join(os.path.expanduser(args.save), f'{name1}_{save_i}_{name2}.png')
         plt.savefig(path)
         print(f'Saved to {path}')
         save_i += 1
@@ -97,12 +98,20 @@ def view_matches(h5_path, image_path):
 
             fig = MultiFigure(padded_1, padded_2)
 
+            # add by zjk
+            sample_num = 100
+            if(matches.shape[1] > sample_num):
+                l1 = list(range(matches.shape[1]))
+                np.random.shuffle(l1)
+                matches = matches[:,l1[0:sample_num]]
+
+
             left  = torch.from_numpy(kp_1[matches[0]]).T
             right = torch.from_numpy(kp_2[matches[1]]).T
 
             fig.mark_xy(left, right)
 
-            show_or_save()
+            show_or_save(key_1, key_2)
 
 if args.mode == 'keypoints':
     view_keypoints(args.h5_path, args.image_path)
